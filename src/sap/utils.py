@@ -2,7 +2,7 @@
 Utility helpers for SAP: attention mode switching and visual index detection.
 """
 
-from typing import List
+from typing import List, Optional
 
 import torch
 import torch.nn as nn
@@ -16,6 +16,18 @@ def ensure_eager_attention(model: nn.Module) -> None:
     weights. This function recursively patches the model config so that the
     eager (loop-based) attention implementation is used instead.
 
+    .. note::
+
+        For Jina and Qwen2-VL models, it is strongly recommended to set
+        ``attn_implementation="eager"`` at **model load time** (i.e. in
+        ``from_pretrained()``) rather than relying solely on this post-hoc
+        patch, because Flash Attention modules may already be instantiated::
+
+            model = AutoModel.from_pretrained(
+                model_name, attn_implementation="eager", ...
+            )
+            sap.ensure_eager_attention(model)  # belt-and-suspenders
+
     Args:
         model: A HuggingFace model (e.g. ColPali, ColQwen2, Jina).
     """
@@ -23,6 +35,13 @@ def ensure_eager_attention(model: nn.Module) -> None:
         for attr in ("_attn_implementation", "attn_implementation"):
             if hasattr(cfg, attr) and getattr(cfg, attr) == "sdpa":
                 setattr(cfg, attr, "eager")
+        # Patch vision_config / text_config sub-configs (Qwen2-VL, Jina)
+        for sub in ("vision_config", "text_config"):
+            if hasattr(cfg, sub):
+                sub_cfg = getattr(cfg, sub)
+                for attr in ("_attn_implementation", "attn_implementation"):
+                    if hasattr(sub_cfg, attr) and getattr(sub_cfg, attr) == "sdpa":
+                        setattr(sub_cfg, attr, "eager")
 
     # Top-level config
     if hasattr(model, "config"):
@@ -72,6 +91,7 @@ def detect_visual_indices_by_range(
     input_ids: torch.Tensor,
     start_token_id: int,
     end_token_id: int,
+    attention_mask: Optional[torch.Tensor] = None,
 ) -> torch.Tensor:
     """
     Detect visual token positions between start/end marker tokens.
@@ -79,10 +99,16 @@ def detect_visual_indices_by_range(
     Works for Qwen2-VL / ColQwen2 and similar models that bracket visual
     tokens with ``<|vision_start|>`` / ``<|vision_end|>`` markers.
 
+    If markers are not found, falls back to ``attention_mask`` (all valid
+    positions). If ``attention_mask`` is also unavailable, returns all
+    positions.
+
     Args:
         input_ids: Token IDs ``[seq_len]`` (1-D) or ``[1, seq_len]``.
         start_token_id: Token ID for ``<|vision_start|>``.
         end_token_id: Token ID for ``<|vision_end|>``.
+        attention_mask: Optional attention mask ``[seq_len]`` or ``[1, seq_len]``.
+            Used as fallback when vision markers are not found.
 
     Returns:
         1-D tensor of indices of the visual tokens (excluding markers).
@@ -91,9 +117,15 @@ def detect_visual_indices_by_range(
     start_positions = torch.where(ids == start_token_id)[0]
     end_positions = torch.where(ids == end_token_id)[0]
 
-    all_visual: List[int] = []
-    for s, e in zip(start_positions, end_positions):
-        # Tokens between the markers (exclusive)
-        all_visual.extend(range(s.item() + 1, e.item()))
+    if len(start_positions) > 0 and len(end_positions) > 0:
+        all_visual: List[int] = []
+        for s, e in zip(start_positions, end_positions):
+            # Tokens between the markers (exclusive)
+            all_visual.extend(range(s.item() + 1, e.item()))
+        return torch.tensor(all_visual, dtype=torch.long, device=input_ids.device)
 
-    return torch.tensor(all_visual, dtype=torch.long, device=input_ids.device)
+    # Fallback: use attention_mask or all positions
+    if attention_mask is not None:
+        mask = attention_mask.squeeze().bool()
+        return torch.where(mask)[0]
+    return torch.arange(len(ids), dtype=torch.long, device=input_ids.device)

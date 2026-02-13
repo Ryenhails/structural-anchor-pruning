@@ -9,7 +9,7 @@ from typing import Dict, Tuple
 import torch
 import torch.nn as nn
 
-from ..utils import detect_visual_indices_by_range
+from ..utils import detect_visual_indices_by_token_id
 
 
 class ColQwen2AttentionExtractor:
@@ -26,18 +26,13 @@ class ColQwen2AttentionExtractor:
         """
         Args:
             model: A ColQwen2 model instance.
-            processor: The corresponding ColQwen2Processor (used to resolve
-                vision start/end token IDs). If *None*, defaults for
-                Qwen2-VL are used (151652 / 151653).
+            processor: The corresponding ColQwen2Processor. If *None*,
+                the default Qwen2-VL image token ID (151655) is used.
         """
         self.model = model
-        if processor is not None and hasattr(processor, "tokenizer"):
-            vocab = processor.tokenizer.get_vocab()
-            self.vision_start_id = vocab.get("<|vision_start|>", 151652)
-            self.vision_end_id = vocab.get("<|vision_end|>", 151653)
-        else:
-            self.vision_start_id = 151652
-            self.vision_end_id = 151653
+        # ColQwen2 uses <|image_pad|> token (id 151655) to mark visual positions,
+        # consistent with the original experiment code.
+        self.image_token_id = getattr(model.config, "image_token_id", 151655)
 
     @staticmethod
     def _unpad_pixel_values(batch: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
@@ -78,8 +73,8 @@ class ColQwen2AttentionExtractor:
         with torch.inference_mode():
             outputs = Qwen2VLModel.forward(self.model, **kwargs)
 
-        visual_indices = detect_visual_indices_by_range(
-            batch["input_ids"][0], self.vision_start_id, self.vision_end_id
+        visual_indices = detect_visual_indices_by_token_id(
+            batch["input_ids"][0], self.image_token_id
         )
         return outputs.attentions, visual_indices
 

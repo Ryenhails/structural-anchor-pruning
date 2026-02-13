@@ -37,7 +37,11 @@ class ColPaliAttentionExtractor:
                 processor.tokenizer.additional_special_tokens.index("<image>")
             ]
         else:
-            self.image_token_id = 257152  # PaliGemma default
+            # Read from model config (consistent with experiment code),
+            # falling back to PaliGemma's default image_token_index.
+            inner = model.model if hasattr(model, "model") else model
+            cfg = inner.config if hasattr(inner, "config") else getattr(model, "config", None)
+            self.image_token_id = getattr(cfg, "image_token_index", 256000) if cfg else 256000
 
     def extract(
         self,

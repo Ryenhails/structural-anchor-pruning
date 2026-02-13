@@ -34,13 +34,19 @@ class JinaAttentionExtractor:
             processor: The corresponding processor/tokenizer.
         """
         self.model = model
+        # Read vision marker token IDs from model config (matching experiment code),
+        # with fallback to processor vocab or Qwen2-VL defaults.
+        cfg = getattr(model, "config", None)
+        default_start = getattr(cfg, "vision_start_token_id", 151652) if cfg else 151652
+        default_end = getattr(cfg, "vision_end_token_id", 151653) if cfg else 151653
+
         if processor is not None and hasattr(processor, "tokenizer"):
             vocab = processor.tokenizer.get_vocab()
-            self.vision_start_id = vocab.get("<|vision_start|>", 151652)
-            self.vision_end_id = vocab.get("<|vision_end|>", 151653)
+            self.vision_start_id = vocab.get("<|vision_start|>", default_start)
+            self.vision_end_id = vocab.get("<|vision_end|>", default_end)
         else:
-            self.vision_start_id = 151652
-            self.vision_end_id = 151653
+            self.vision_start_id = default_start
+            self.vision_end_id = default_end
 
     def _get_jina_model(self):
         """Unwrap PeftModel / model wrappers to get the JinaEmbeddingsV4Model."""
@@ -100,7 +106,8 @@ class JinaAttentionExtractor:
             )
 
         visual_indices = detect_visual_indices_by_range(
-            batch["input_ids"][0], self.vision_start_id, self.vision_end_id
+            batch["input_ids"][0], self.vision_start_id, self.vision_end_id,
+            attention_mask=batch.get("attention_mask", None),
         )
         return outputs.attentions, visual_indices
 
@@ -154,7 +161,8 @@ class JinaAttentionExtractor:
             )
 
         visual_indices = detect_visual_indices_by_range(
-            batch["input_ids"][0], self.vision_start_id, self.vision_end_id
+            batch["input_ids"][0], self.vision_start_id, self.vision_end_id,
+            attention_mask=batch.get("attention_mask", None),
         )
 
         # Project visual tokens through Jina's multi-vector head
