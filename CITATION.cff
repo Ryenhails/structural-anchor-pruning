@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite our paper."
+title: "Structural Anchor Pruning (SAP)"
+type: software
+license: MIT
+authors:
+  - family-names: Liu
+    given-names: Zhuchenyang
+  - family-names: Hu
+    given-names: Ziyu
+  - family-names: Zhang
+    given-names: Yao
+  - family-names: Xiao
+    given-names: Yu
+preferred-citation:
+  type: article
+  title: "Look in the Middle: Structural Anchor Pruning for Scalable Visual RAG Indexing"
+  authors:
+    - family-names: Liu
+      given-names: Zhuchenyang
+    - family-names: Hu
+      given-names: Ziyu
+    - family-names: Zhang
+      given-names: Yao
+    - family-names: Xiao
+      given-names: Yu
+  year: 2025
+  journal: "arXiv preprint arXiv:2601.20107"
+  url: "https://arxiv.org/abs/2601.20107"
