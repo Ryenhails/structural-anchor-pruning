@@ -4,6 +4,10 @@ A training-free method for pruning visual token embeddings in VLM-based document
 
 **Paper:** [Look in the Middle: Structural Anchor Pruning for Scalable Visual RAG Indexing](https://arxiv.org/abs/2601.20107)
 
+<p align="center">
+  <img src="assets/sap_overview.png" alt="SAP Overview" width="100%">
+</p>
+
 ## Overview
 
 Multi-vector Visual RAG models (ColPali, ColQwen2, Jina V4) produce hundreds of visual token embeddings per document page, leading to large index sizes. SAP identifies structurally important tokens using **visual in-degree centrality** from the model's own attention maps — no training, no external data, no task-specific tuning.
