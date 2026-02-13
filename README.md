@@ -4,7 +4,9 @@ A training-free method for pruning visual token embeddings in VLM-based document
 
 **Paper:** [Look in the Middle: Structural Anchor Pruning for Scalable Visual RAG Indexing](https://arxiv.org/abs/2601.20107)
 
-> **Note:** This library is under active development and may contain bugs. If you need to reproduce the experimental results from the paper, please refer to the original scripts in the [`experiments/`](experiments/) directory, which are the exact code used in the paper.
+> ⚠️ **Note:** This library is under active development and may contain bugs. If you need to reproduce the experimental results from the paper, please refer to the original scripts in the [`experiments/`](experiments/) directory, which are the exact code used in the paper.
+
+> ⭐ If you find this repository useful for your research, a GitHub star would be much appreciated! It helps others discover the project 🙌
 
 <p align="center">
   <img src="assets/sap_overview.png" alt="SAP Overview" width="100%">
