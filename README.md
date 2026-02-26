@@ -152,6 +152,9 @@ The `experiments/` directory contains the original benchmark scripts used in the
   year={2025}
 }
 ```
+## Acknowledgements
+
+This project has received funding from the **Business Finland** co-innovation programme under grant agreement No. 69/31/2025. It is supported by the [AiWo: Human-centric AI-enabled Collaborative Fieldwork Operations](https://aifieldwork.aalto.fi/events/) project (2025–2027), which aims to revolutionize fieldwork operations and enhance human-AI collaboration across the manufacturing, construction, and industrial design sectors.
 
 ## License
 
